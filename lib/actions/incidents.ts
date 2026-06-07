@@ -7,6 +7,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import type { IncidentStatus } from '@/lib/types';
 import { analysisGraph } from '@/lib/agents/graph';
 import { persistAnalysis } from '@/lib/agents/persist';
+import { pushIncidentEvent } from '@/lib/dynatrace';
 
 // ── Ticket number ─────────────────────────────────────────────
 async function nextTicketNumber(): Promise<string> {
@@ -44,6 +45,15 @@ export async function createIncidentAction(
       status: 'open',
     })
     .returning();
+
+  // Push to Dynatrace synchronously before the serverless function returns
+  await pushIncidentEvent({
+    ticketNumber:     incident.ticketNumber,
+    title:            incident.title,
+    severity:         incident.severity,
+    category:         incident.category,
+    affectedServices: incident.affectedServices as string[],
+  }).catch((err) => console.error('[dynatrace]', err));
 
   // Run agent graph (fire-and-forget: don't block the redirect)
   analysisGraph
