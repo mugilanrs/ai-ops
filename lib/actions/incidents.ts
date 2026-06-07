@@ -40,7 +40,7 @@ export async function createIncidentAction(
       description,
       affectedServices,
       category,
-      embedding,
+      ...(embedding ? { embedding } : {}),
       status: 'open',
     })
     .returning();

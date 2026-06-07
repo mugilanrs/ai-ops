@@ -64,6 +64,10 @@ export async function retrieveContextNode(state: GraphState): Promise<Partial<Gr
   const db = getDb();
   const vector = await embed(incidentText(state.incident.title, state.incident.description));
 
+  if (!vector) {
+    return { similar: [], dedupMatch: null };
+  }
+
   const similarity = cosineDistance(incidents.embedding, vector);
 
   const rows = await db
@@ -116,6 +120,7 @@ export async function recommendResolutionNode(state: GraphState): Promise<Partia
     db.select().from(runbooks).where(eq(runbooks.category, category)).limit(2),
     (async () => {
       const vector = await embed(incidentText(state.incident.title, state.incident.description));
+      if (!vector) return [];
       const similarity = cosineDistance(incidents.embedding, vector);
       return db
         .select({ title: incidents.title, resolution: incidents.id })
